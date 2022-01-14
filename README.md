@@ -1,16 +1,13 @@
-# Basic Sample Hardhat Project
+# Name Registration System
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, a sample script that deploys that contract, and an example of a task implementation, which simply lists the available accounts.
+`Name` contract allows us to register and lock a name for 1 hour. For locking the contract charges 1000 wei per byte.
 
-Try running some of the following tasks:
+When the lock expires another user can register and lock the same name and the previous user gets refund looses his ownership.
+
+A user can renew his lock any number of times without any extra fee.
+
+Run the following command to test it:
 
 ```shell
-npx hardhat accounts
-npx hardhat compile
-npx hardhat clean
 npx hardhat test
-npx hardhat node
-node scripts/sample-script.js
-npx hardhat help
 ```
-# name
