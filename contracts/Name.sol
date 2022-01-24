@@ -32,9 +32,8 @@ contract Name {
   }
 
   function _refund(address recepient, uint256 amount) private {
-    payable(recepient).transfer(amount);
-    // (bool sent,) = recepient.call{value: amount}("");
-    // require(sent, "Failed to send Ether");
+    (bool sent,) = recepient.call{value: amount}("");
+    require(sent, "Failed to send Ether");
   }
 
   function _isSufficientFees (string memory name, uint256 value) internal pure returns (bool) {
