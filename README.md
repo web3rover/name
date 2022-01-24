@@ -8,8 +8,8 @@ A user can renew his lock any number of times without any extra fee.
 
 It protects from front running attacks using commit-reveal scheme. Reference links for commit-reveal-scheme:
 
-https://docs.soliditylang.org/en/v0.5.3/solidity-by-example.html#blind-auction
-https://medium.com/swlh/exploring-commit-reveal-schemes-on-ethereum-c4ff5a777db8
+- https://docs.soliditylang.org/en/v0.5.3/solidity-by-example.html#blind-auction
+- https://medium.com/swlh/exploring-commit-reveal-schemes-on-ethereum-c4ff5a777db8
 
 ## Run the following command to test it:
 
