@@ -1,5 +1,6 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
+const randomstring = require("randomstring");
 
 describe("Name", function () {
   it("Should register, renew and unregister name", async function () {
@@ -9,20 +10,31 @@ describe("Name", function () {
 
     const registrationName = "Narayan";
 
-    const feesRequired = (await name.requiredFees(registrationName)).toString()
+    const feesRequired = (await name.feesRequired(registrationName)).toString()
 
-    await (await name.register(registrationName, { value: feesRequired })).wait()
+    const accounts = await ethers.getSigners()
+    const user = accounts[0]
+    let random = randomstring.generate(32)
+    let commitment = (await name.commitment(user.address, registrationName, random))
+
+    await (await name.commit(commitment, { value: feesRequired })).wait()
+    await (await name.reveal(registrationName, random)).wait()
+
     let balance = await ethers.provider.getBalance(name.address)
-
     expect(balance).to.equal(feesRequired);
-    await expect(name.register(registrationName, { value: feesRequired })).to.be.revertedWith("Name is taken");
+
+    random = randomstring.generate(32)
+    commitment = (await name.commitment(user.address, registrationName, random))
+    await (await name.commit(commitment, { value: feesRequired })).wait()
+    await expect(name.reveal(registrationName, random)).to.be.revertedWith("Name is taken");
+
     await expect(name.expire(registrationName)).to.be.revertedWith("Cannot expire name");
 
     await network.provider.send("evm_increaseTime", [36000])
     await (await name.expire(registrationName)).wait()
 
     balance = await ethers.provider.getBalance(name.address)
-    expect(balance).to.equal("0");
+    expect(balance).to.equal("7000");
 
     await expect(name.renew(registrationName)).to.be.revertedWith("Cannot renew");
   });

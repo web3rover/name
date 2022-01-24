@@ -1,6 +1,8 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
+import "hardhat/console.sol";
+
 contract Name {
   /**
   * Pay 1000 wei per byte to lock
@@ -17,34 +19,64 @@ contract Name {
     address lockedBy;
   }
 
-  mapping (string => Lock) public locks;
+  struct Commit {
+    uint256 feePaid;
+    address commitedBy;
+  }
 
-  function requiredFees(string memory name) public pure returns (uint256) {
+  mapping (string => Lock) public locks;
+  mapping (bytes32 => Commit) public commits;
+
+  function feesRequired(string memory name) public pure returns (uint256) {
     return bytes(name).length * feePerByte;
   }
 
-  function _refund(string memory name, address recepient) private {
-    uint256 fees = requiredFees(name);
-    (bool sent,) = recepient.call{value: fees}("");
-    require(sent, "Failed to send Ether");
+  function _refund(address recepient, uint256 amount) private {
+    payable(recepient).transfer(amount);
+    // (bool sent,) = recepient.call{value: amount}("");
+    // require(sent, "Failed to send Ether");
   }
 
-  modifier _isSufficientFees (string memory name) {
-    uint256 fees = requiredFees(name);
-    require(msg.value >= fees, "Insufficient balance");
-    _;
+  function _isSufficientFees (string memory name, uint256 value) internal pure returns (bool) {
+    uint256 fees = feesRequired(name);
+    if (value >= fees) {
+      return true;
+    } else {
+      return false;
+    }
   }
 
-  function register(string memory name) public payable _isSufficientFees(name) {
+  function commit(bytes32 _commitment) public payable {
+    require(_commitment[0] != 0, "empty commitment");
+    require(commits[_commitment].feePaid == 0, "commitment is already used");
+    require(msg.value > 0, "you must send ether for name registration");
+
+    commits[_commitment] = Commit(msg.value, msg.sender);
+  }
+
+  function reveal(string memory name, string memory blindingFactor) public {
+    bytes32 _commitment = keccak256(abi.encodePacked(msg.sender, name, blindingFactor));
+    uint256 feePaid = commits[_commitment].feePaid;
+
+    require(feePaid > 0, "commit not found");
+    delete commits[_commitment];
+
+    if (!_isSufficientFees(name, feePaid)) {
+      revert("insufficient fees");
+    }
+
     Lock storage lock = locks[name];
     if(lock.lockedBy == address(0x00)) {
       locks[name] = Lock(block.timestamp, msg.sender);
+      // refund extra fee paid
+      _refund(msg.sender, feePaid - feesRequired(name));
     } else if (lock.lockedAt + lockSeconds < block.timestamp) {
       /**
       * Lock expired
       */
-      _refund(name, lock.lockedBy);
+      _refund(lock.lockedBy, feesRequired(name));
       locks[name] = Lock(block.timestamp, msg.sender);
+      _refund(msg.sender, feePaid - feesRequired(name));
     } else {
       revert("Name is taken");
     }
@@ -66,10 +98,14 @@ contract Name {
       lock.lockedBy == msg.sender && 
       lock.lockedAt + lockSeconds < block.timestamp
     ) {
-      _refund(name, lock.lockedBy);
+      _refund(lock.lockedBy, feesRequired(name));
       delete locks[name];
     } else {
       revert("Cannot expire name");
     }
+  }
+
+  function commitment(address sender, string memory name, string memory blindingFactor) pure public returns (bytes32) {
+    return keccak256(abi.encodePacked(sender, name, blindingFactor));
   }
 }
