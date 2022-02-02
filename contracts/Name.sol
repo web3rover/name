@@ -54,6 +54,9 @@ contract Name {
   }
 
   function reveal(string memory name, string memory blindingFactor) public {
+    /**
+    * To understand encodePacked see: https://www.youtube.com/watch?v=rxZR3ITZlzE
+    */
     bytes32 _commitment = keccak256(abi.encodePacked(msg.sender, name, blindingFactor));
     uint256 feePaid = commits[_commitment].feePaid;
 
